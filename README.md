@@ -1,2 +1,2 @@
-# revision
+# Revision Buddy
 Study Application
