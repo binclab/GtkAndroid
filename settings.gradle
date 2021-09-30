@@ -1,0 +1,2 @@
+rootProject.name='Revision Buddy'
+include ':app'
