@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <declare-styleable name="GtkBoxAttrs">
-        <attr name="android:packageType" value="0" />
-        <attr name="android:orientation" value="horizontal" />
-    </declare-styleable>
-</resources>
