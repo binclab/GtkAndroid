@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<org.gtk.GtkDrawer xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <FrameLayout
+        android:id="@+id/appContent"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:backgroundTint="#CCFFEBEE"
+        android:visibility="invisible"/>
+
+    <View
+        android:id="@+id/drawerContent"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent" />
+
+    <LinearLayout
+        android:id="@+id/drawerTint"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:animateLayoutChanges="true"
+        android:background="#801C1A1A"
+        android:clickable="true"
+        android:focusable="true"
+        android:orientation="horizontal"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/sideDrawer"
+        android:layout_width="200dp"
+        android:layout_height="match_parent"
+        android:backgroundTint="#BFEFE6E6"
+        android:backgroundTintMode="src_over"
+        android:orientation="vertical"
+        android:translationX="-200dp">
+
+        <org.gtk.GtkListView
+            android:id="@+id/navList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+    </LinearLayout>
+</org.gtk.GtkDrawer>

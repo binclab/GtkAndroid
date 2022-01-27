@@ -3,19 +3,22 @@
     android:id="@+id/paneDrawer"
     android:layout_width="200dp"
     android:layout_height="match_parent"
-    android:background="@android:color/holo_green_light"
-    android:translationX="-150dp">
+    android:background="@android:color/holo_green_light">
 
-    <LinearLayout
+    <View
         android:id="@+id/paneChild1"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical" />
+        android:orientation="vertical"
+        android:translationX="5dp"/>
 
     <LinearLayout
-        android:id="@+id/paneHandle"
-        android:layout_width="4dp"
-        android:layout_height="match_parent"
-        android:orientation="horizontal" />
+        android:layout_width="8dp"
+        android:layout_height="match_parent"/>
+
+    <LinearLayout
+        android:layout_width="3dp"
+        android:layout_height="4dp" />
+
 
 </org.gtk.GtkPaned>

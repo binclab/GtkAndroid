@@ -6,10 +6,11 @@ import android.util.AttributeSet
 import android.util.Log
 import android.view.MotionEvent
 import android.view.View
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 
-class GtkPaned (context: Context, attributeSet: AttributeSet): RelativeLayout(context,attributeSet) {
+open class GtkPaned (context: Context, attributeSet: AttributeSet): LinearLayout(context,attributeSet) {
     lateinit var drawer: RelativeLayout
     lateinit var child1: LinearLayout
     lateinit var handle: LinearLayout
@@ -24,14 +25,14 @@ class GtkPaned (context: Context, attributeSet: AttributeSet): RelativeLayout(co
     fun setVariables() {
         Log.e("GtkPaned", "Clicked")
         drawer = findViewById(R.id.paneDrawer)
-        handle = findViewById(R.id.paneHandle)
+        //handle = findViewById(R.id.paneHandle)
         child1 = findViewById(R.id.paneChild1)
     }
 
     fun setDefaults(){
         setOnTouchListener(DragView())
         drawer.setOnTouchListener(DragView())
-        handle.setOnTouchListener(DragView())
+        //handle.setOnTouchListener(DragView())
         child1.setOnTouchListener(DragView())
     }
 
