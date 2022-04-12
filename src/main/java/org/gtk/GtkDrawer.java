@@ -75,7 +75,19 @@ public class GtkDrawer extends RelativeLayout implements GtkWidget {
         post(new Runnable() {
             @Override
             public void run() {
-                changeVisibility(progress, false);
+                final Handler handler = new Handler();
+                try {
+                    Thread.sleep(400);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                handler.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        changeVisibility(progress, false);
+                    }
+                });
             }
         });
     }
@@ -164,10 +176,8 @@ public class GtkDrawer extends RelativeLayout implements GtkWidget {
         }
 
         public void animateDrawer(float position, boolean drawerOpen) {
-            ObjectAnimator animator =
-                    ObjectAnimator.ofFloat(drawer, "translationX", position);
-            int drawable, shortAnimationDuration =
-                    getResources().getInteger(android.R.integer.config_shortAnimTime);
+            int duration = getResources().getInteger(android.R.integer.config_shortAnimTime),
+                    drawable;
             if (drawerOpen) {
                 changeVisibility(tinter, true);
                 if (getResources().getConfiguration().uiMode == UI_MODE_NIGHT_YES)
@@ -180,7 +190,8 @@ public class GtkDrawer extends RelativeLayout implements GtkWidget {
                 else drawable = R.drawable.gtk_menu_light;
             }
             ((Activity) getContext()).getActionBar().setHomeAsUpIndicator(drawable);
-            animator.setDuration(shortAnimationDuration).start();
+            ObjectAnimator.ofFloat(drawer, "translationX", position)
+                    .setDuration(duration).start();
         }
     }
 
@@ -211,8 +222,8 @@ public class GtkDrawer extends RelativeLayout implements GtkWidget {
     }
 
     public void navigate(boolean open) {
-        if (getWidth() == 0) touchListener.animateDrawer(0.0f - Math.min(
-                getResources().getDisplayMetrics().widthPixels, 432), false);
+        if (getWidth() == 0) touchListener.animateDrawer(0.0f - Math.min(getResources()
+                .getDisplayMetrics().widthPixels, 432), false);
         else if (open) touchListener.animateDrawer(0.0f, true);
         else touchListener.animateDrawer((0.0f - getWidth()), false);
     }
