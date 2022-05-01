@@ -1,7 +1,6 @@
 package org.gtk;
 
 import static android.content.Context.MODE_PRIVATE;
-import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
 import static android.content.res.Configuration.UI_MODE_NIGHT_YES;
 
 import android.animation.Animator;
@@ -11,49 +10,52 @@ import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.app.ActionBar;
 import android.app.Activity;
-import android.app.Fragment;
-import android.app.FragmentManager;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.content.res.TypedArray;
-import android.os.Handler;
+import android.graphics.Color;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
+import android.widget.ListView;
+import android.widget.ProgressBar;
+import android.widget.ScrollView;
 
-import java.util.ArrayList;
+import java.util.Objects;
 
 import android.widget.*;
-import android.graphics.*;
-import android.view.*;
 
-public class GtkDrawer extends RelativeLayout implements GtkWidget {
+public class GtkDrawer extends FrameLayout implements GtkWidget {
 
+    private final int duration = 200;
     private boolean parent = false;
-    private FragmentManager manager;
-    private Fragment[] fragments;
     private FrameLayout content;
     private ListView navList;
     private SharedPreferences preferences;
-    private LinearLayout tinter, drawer, header, progress;
+    private LinearLayout drawer, header, progress, tinter;
     private final TouchListener touchListener = new TouchListener();
 
     public GtkDrawer(Context context, AttributeSet attrs) {
         super(context, attrs);
         /*TypedArray a = context.obtainStyledAttributes(
-                attrs, R.styleable.GtkDrawer, 0, 0
-        );
-        right = a.getBoolean(R.styleable.GtkDrawer_right, false);
-        a.recycle();*/
+		 attrs, R.styleable.GtkDrawer, 0, 0
+		 );
+		 right = a.getBoolean(R.styleable.GtkDrawer_right, false);
+		 a.recycle();*/
         setVariables();
         setupContent();
         setupTinter();
         setupDrawer();
+    }
+
+    public GtkDrawer(Context context, String[] strings, View[] objects) {
+        this(context, null);
     }
 
     @Override
@@ -71,25 +73,7 @@ public class GtkDrawer extends RelativeLayout implements GtkWidget {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-
-        post(new Runnable() {
-            @Override
-            public void run() {
-                final Handler handler = new Handler();
-                try {
-                    Thread.sleep(400);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        changeVisibility(progress, false);
-                    }
-                });
-            }
-        });
+        
     }
 
     @Override
@@ -97,36 +81,36 @@ public class GtkDrawer extends RelativeLayout implements GtkWidget {
         super.onDetachedFromWindow();
     }
 
-    public void switchFragment(int position, CharSequence text) {
-        ActionBar actionBar = ((Activity) getContext()).getActionBar();
-        preferences.edit().putInt("LastFragment", position).apply();
-        actionBar.setTitle("");
-        manager.beginTransaction()
-                .setCustomAnimations(android.R.animator.fade_in, android.R.animator.fade_out)
-                .replace(R.id.gtk_fragment, fragments[position]).commit();
+    public void switchView(View[] views, final CharSequence text) {
         changeVisibility(progress, true);
-        navigate(false);
-        if (position == 0) navList.setAdapter(new NavigationAdapter(getContext(), new String[]{}));
-        new Thread(new Runnable() {
-            final Handler handler = new Handler();
+        openDrawer(false);
+        if (text == null) {
+            changeVisibility(views[0], true);
+        } else for (View view : views) {
+            if (view.getTag() != null && view.getTag().equals(text)) {
+                preferences.edit().putString("LastFragment", (String) text).apply();
+                changeVisibility(view, true);
+            } else changeVisibility(view, false);
 
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(400);
+        }
+		((Activity) getContext()).getActionBar().setTitle(text);
+        new Thread(new Runnable(){
+			@Override
+			public void run()
+			{
+				try {
+                    Thread.sleep(duration);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-
-                handler.post(new Runnable() {
-                    @Override
-                    public void run() {
-                        actionBar.setTitle(text);
-                        changeVisibility(progress, false);
-                    }
-                });
-            }
-        }).start();
+				post(new Runnable(){
+					@Override
+					public void run(){
+						changeVisibility(progress, false);
+					}
+				});
+			}
+		}).start();
     }
 
     private class TouchListener implements View.OnTouchListener {
@@ -136,134 +120,126 @@ public class GtkDrawer extends RelativeLayout implements GtkWidget {
 
         @SuppressLint("ClickableViewAccessibility")
         @Override
-        public boolean onTouch(@GtkNullable View view, @GtkNullable MotionEvent motionEvent) {
+        public boolean onTouch(View view, MotionEvent motionEvent) {
             if (view != null && motionEvent != null) {
                 listItem = view.getClass().getSimpleName().equals("ListView");
-                switch (motionEvent.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        startX = motionEvent.getX();
-                        if (listItem && startX > drawer.getWidth() - 128) move = true;
-                        else if (motionEvent.getX() <= 48) move = true;
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        if (move) {
-                            float position;
-                            if (listItem)
-                                position = drawer.getTranslationX() + motionEvent.getX() - startX;
-                            else
-                                position = motionEvent.getX() - drawer.getWidth();
-                            if (motionEvent.getX() - startX <= -5) tinter.setVisibility(View.GONE);
-                            else if (motionEvent.getX() - startX >= 5)
-                                tinter.setVisibility(View.VISIBLE);
-                            if (position <= 0) drawer.setTranslationX(position);
-                        }
-                        break;
-                    case MotionEvent.ACTION_UP:
-                        if (move) {
-                            if (drawer.getTranslationX() < -drawer.getWidth() * 0.5)
-                                animateDrawer(0.0f - drawer.getWidth(), false);
-                            else
-                                animateDrawer(0.0f, true);
-                            move = false;
-                        }
-                        break;
-                    default:
-                        break;
+                if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+                    startX = motionEvent.getX();
+                } else if (motionEvent.getAction() == MotionEvent.ACTION_MOVE) {
+					if (startX != motionEvent.getX()){
+                    	float f = listItem ? drawer.getTranslationX() + motionEvent.getX() - startX :
+                            motionEvent.getX() - drawer.getWidth();
+                    	if (f <= 0) {
+							move = true;
+							tinter.setVisibility(GONE);
+							drawer.setTranslationX(f);
+						}
+					}
+                } else if (motionEvent.getAction() == MotionEvent.ACTION_UP && move) {
+					if (drawer.getTranslationX() != 0 || drawer.getTranslationX() != -drawer.getWidth())
+                    	openDrawer(drawer.getTranslationX() > -drawer.getWidth() * 0.5);
+                    move = false;
                 }
                 view.onTouchEvent(motionEvent);
             }
             return true;
         }
 
-        public void animateDrawer(float position, boolean drawerOpen) {
-            int duration = getResources().getInteger(android.R.integer.config_shortAnimTime),
-                    drawable;
-            if (drawerOpen) {
-                changeVisibility(tinter, true);
-                if (getResources().getConfiguration().uiMode == UI_MODE_NIGHT_YES)
-                    drawable = R.drawable.gtk_menu_close_dark;
-                else drawable = R.drawable.gtk_menu_close_light;
-            } else {
-                changeVisibility(tinter, false);
-                if (getResources().getConfiguration().uiMode == UI_MODE_NIGHT_YES)
-                    drawable = R.drawable.gtk_menu_dark;
-                else drawable = R.drawable.gtk_menu_light;
-            }
-            ((Activity) getContext()).getActionBar().setHomeAsUpIndicator(drawable);
-            ObjectAnimator.ofFloat(drawer, "translationX", position)
-                    .setDuration(duration).start();
-        }
     }
 
-    private static class NavigationAdapter extends ArrayAdapter<String> {
-        public NavigationAdapter(Context context, String[] stringArray) {
-            super(context, android.R.layout.simple_list_item_1, stringArray);
+    public void setAdapter(final String[] subjects, final View[] views) {
+        navList.setAdapter(new ArrayAdapter<String>(getContext(),
+                android.R.layout.simple_list_item_1, subjects));
+
+        for (View view : views) {
+            if (view.getParent() == null) addView(view);
+            view.setVisibility(GONE);
         }
-
-    }
-
-    public void setAdapter(String[] subjects, ArrayList<Fragment> list) {
-        int position = preferences.getInt("LastFragment", 0);
-        navList.setAdapter(new NavigationAdapter(getContext(), subjects));
+        switchView(views, preferences.getString("LastFragment", null));
         navList.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                switchFragment(position + 1, ((TextView) view).getText());
+            public void onItemClick(AdapterView<?> parent, View view, int i, long id) {
+                switchView(views, subjects[i]);
             }
         });
-        fragments = list.toArray(new Fragment[0]);
-        if (subjects.length != 0 && position != 0)
-            ((Activity) getContext()).getActionBar().setTitle(subjects[position - 1]);
-        manager.beginTransaction().add(R.id.gtk_fragment, fragments[position]).commit();
     }
 
     public void setHeader(View view) {
         header.addView(view);
     }
 
-    public void navigate(boolean open) {
-        if (getWidth() == 0) touchListener.animateDrawer(0.0f - Math.min(getResources()
-                .getDisplayMetrics().widthPixels, 432), false);
-        else if (open) touchListener.animateDrawer(0.0f, true);
-        else touchListener.animateDrawer((0.0f - getWidth()), false);
+    public void openDrawer(boolean open) {
+        tinter.setClickable(open);
+        tinter.setFocusable(open);
+        changeVisibility(tinter, open);
+		tinter.setBackgroundColor(open? Color.parseColor("#801C1A1A"): Color.WHITE);
+		((Activity) getContext()).getActionBar().setHomeAsUpIndicator(
+			getResources().getConfiguration().uiMode == UI_MODE_NIGHT_YES && open?
+				R.drawable.gtk_menu_close_dark : 
+			getResources().getConfiguration().uiMode == UI_MODE_NIGHT_YES?
+				R.drawable.gtk_menu_dark :
+			open? R.drawable.gtk_menu_close_light : R.drawable.gtk_menu_light);
+  		ObjectAnimator.ofFloat(drawer, "translationX", open? 0f: 
+			- Math.min(getResources().getDisplayMetrics().widthPixels, 432))
+			.setDuration(duration).start();
+    }
+
+    public boolean isOpen() {
+        return drawer.getTranslationX() == 0;
     }
 
     private void setVariables() {
         preferences = ((Activity) getContext()).getPreferences(MODE_PRIVATE);
-        manager = ((Activity) getContext()).getFragmentManager();
-        tinter = new LinearLayout(getContext());
         drawer = new LinearLayout(getContext());
         header = new LinearLayout(getContext());
         navList = new ListView(getContext());
         progress = new LinearLayout(getContext());
+        tinter = new LinearLayout(getContext());
     }
 
     @SuppressLint("ClickableViewAccessibility")
     private void setupContent() {
         ScrollView scroller = new ScrollView(getContext());
         ProgressBar loader = new ProgressBar(getContext());
+        LinearLayout dragger = new LinearLayout(getContext());
         content = new FrameLayout(getContext());
         content.setId(R.id.gtk_fragment);
         parent = true;
+        progress.addView(loader);
         addView(scroller);
+        addView(dragger);
+        addView(progress);
         addView(tinter);
         addView(drawer);
-        addView(progress);
         scroller.addView(content);
         scroller.setFillViewport(true);
         scroller.getLayoutParams().height = LayoutParams.MATCH_PARENT;
         scroller.getLayoutParams().width = LayoutParams.MATCH_PARENT;
-        scroller.setOnTouchListener(touchListener);
+        dragger.getLayoutParams().height = LayoutParams.MATCH_PARENT;
+        dragger.getLayoutParams().width = 24;
+        dragger.setOnTouchListener(touchListener);
         progress.setBackgroundColor(Color.WHITE);
         progress.getLayoutParams().height = LayoutParams.MATCH_PARENT;
         progress.getLayoutParams().width = LayoutParams.MATCH_PARENT;
         progress.setGravity(Gravity.CENTER);
-        progress.addView(loader);
-        loader.getLayoutParams().height = 200;
-        loader.getLayoutParams().width = 200;
+        progress.setVisibility(VISIBLE);
+        loader.getLayoutParams().height = duration;
+        loader.getLayoutParams().width = duration;
         parent = false;
     }
 
+    private void setupTinter() {
+        tinter.getLayoutParams().height = LayoutParams.MATCH_PARENT;
+        tinter.getLayoutParams().width = LayoutParams.MATCH_PARENT;
+        tinter.setVisibility(GONE);
+        tinter.setLayoutTransition(new LayoutTransition());
+        tinter.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openDrawer(false);
+            }
+        });
+    }
 
     @SuppressLint("ClickableViewAccessibility")
     private void setupDrawer() {
@@ -283,30 +259,19 @@ public class GtkDrawer extends RelativeLayout implements GtkWidget {
         navList.setOnTouchListener(touchListener);
     }
 
-    private void setupTinter() {
-        tinter.setBackgroundColor(Color.parseColor("#801C1A1A"));
-        tinter.getLayoutParams().width = LayoutParams.MATCH_PARENT;
-        tinter.getLayoutParams().height = LayoutParams.MATCH_PARENT;
-        tinter.setClickable(true);
-        tinter.setFocusable(true);
-        tinter.setVisibility(GONE);
-        tinter.setLayoutTransition(new LayoutTransition());
-    }
-
-    private void changeVisibility(View view, boolean visible) {
-        int duration = getResources().getInteger(android.R.integer.config_shortAnimTime);
+    private void changeVisibility(final View view, boolean visible) {
         if (visible) {
             view.setAlpha(0f);
             view.setVisibility(View.VISIBLE);
             view.animate().alpha(1f).setDuration(duration).setListener(null);
         } else {
             view.animate().alpha(0f).setDuration(duration).setListener(
-                    new AnimatorListenerAdapter() {
-                        @Override
-                        public void onAnimationEnd(Animator animation) {
-                            tinter.setVisibility(View.GONE);
-                        }
+            	new AnimatorListenerAdapter() {
+                	@Override
+                    public void onAnimationEnd(Animator animation) {
+                        view.setVisibility(View.INVISIBLE);
                     }
+                }
             );
         }
     }

@@ -5,7 +5,7 @@ import android.util.AttributeSet;
 import android.widget.LinearLayout;
 
 public class GtkBox extends LinearLayout {
-    public GtkBox(Context context, @GtkNullable AttributeSet attrs) {
+    public GtkBox(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 }

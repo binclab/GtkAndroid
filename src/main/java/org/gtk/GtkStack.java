@@ -5,7 +5,7 @@ import android.util.AttributeSet;
 import android.widget.FrameLayout;
 
 public class GtkStack extends FrameLayout {
-    public GtkStack(Context context, @GtkNullable AttributeSet attrs) {
+    public GtkStack(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 }
