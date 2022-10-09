@@ -11,6 +11,7 @@ import android.content.res.Configuration;
 import android.graphics.Color;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,103 +21,71 @@ import android.widget.RelativeLayout;
 
 public class GtkPaned extends FrameLayout implements GtkWidget {
 
-    private final int duration = 200;
+    private final LinearLayout tint, child, handle;
     private final RelativeLayout pane;
-    LinearLayout tinter, dragger;
-    private boolean parent;
+    private boolean add = false;
+    public final int duration = 200;
 
     @SuppressLint("ClickableViewAccessibility")
     public GtkPaned(Context context, AttributeSet attrs) {
         super(context, attrs);
-        int width = Math.min(getResources().getDisplayMetrics().widthPixels, 432);
-        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(128, -1);
-        FrameLayout content = new FrameLayout(context);
-        LinearLayout layout = new LinearLayout(context);
-        dragger = new LinearLayout(context);
-        tinter = new LinearLayout(context);
-        params.addRule(RelativeLayout.ALIGN_PARENT_END);
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(64, -1);
+        LinearLayout border = new LinearLayout(context);
+        setLayoutParams(new FrameLayout.LayoutParams(-1, -1));
+        tint = new LinearLayout(context);
+        handle = new LinearLayout(context);
+        child = new LinearLayout(context);
         pane = new RelativeLayout(context);
-        tinter.setBackgroundColor(Color.parseColor("#801C1A1A"));
-        tinter.setClickable(false);
-        tinter.setFocusable(false);
-        tinter.setVisibility(GONE);
-        tinter.setLayoutParams(new LayoutParams(-1, -1));
-        content.setLayoutParams(new LayoutParams(-1, -1));
-        layout.setLayoutParams(new LayoutParams(width, -1));
-        layout.setBackgroundColor(Color.WHITE);
-        pane.setLayoutParams(new LayoutParams(width + 24, -1));
-        dragger.setLayoutParams(params);
-        dragger.setOnTouchListener(new OnTouchListener() {
-            boolean move = false;
-            float startX = 0.0f;
-
-            @Override
-            public boolean onTouch(View view, MotionEvent motionEvent) {
-                if (view != null && motionEvent != null) {
-                    switch (motionEvent.getAction()) {
-                        case MotionEvent.ACTION_DOWN:
-                            startX = motionEvent.getX();
-                            break;
-                        case MotionEvent.ACTION_MOVE:
-                            float position = pane.getTranslationX() + motionEvent.getX() - startX;
-                            if (startX != motionEvent.getX() && position <= 0) {
-                                move = true;
-                                tinter.setVisibility(GONE);
-                                pane.setTranslationX(position);
-                            }
-                            break;
-                        case MotionEvent.ACTION_UP:
-                            if (move && pane.getTranslationX() != 0 || pane.getTranslationX() != -pane.getWidth())
-                                openDrawer(pane.getTranslationX() > -pane.getWidth() * 0.5);
-                            move = false;
-                            break;
-                        default:
-                            move = false;
-                            break;
-                    }
-                    view.onTouchEvent(motionEvent);
-                }
-                return true;
-            }
-        });
-        pane.addView(layout);
-        pane.addView(dragger);
-        parent = true;
-        addView(content);
-        addView(tinter);
-        addView(pane);
-        parent = false;
+        params.setMarginStart(-32);
+        params.addRule(RelativeLayout.ALIGN_PARENT_END);
+        addView(tint, new FrameLayout.LayoutParams(-1, -1));
+        addView(pane, new FrameLayout.LayoutParams(432, -1));
+        pane.addView(child, new RelativeLayout.LayoutParams(400, -1));
+        pane.addView(handle, params);
+        handle.addView(border, new LinearLayout.LayoutParams(2, -1));
+        tint.setBackgroundColor(Color.parseColor("#801C1A1A"));
+        tint.setVisibility(INVISIBLE);
+        pane.setTranslationX(-400f);
+        child.setBackgroundColor(Color.WHITE);
+        border.setBackgroundColor(Color.parseColor("#801C1A1A"));
+        handle.setGravity(Gravity.CENTER_HORIZONTAL);
+        handle.setOnTouchListener(new PaneMover());
+        tint.setOnTouchListener(new PaneCloser());
+        add = true;
     }
 
     @Override
     public void addView(View child) {
-        if (parent) super.addView(child);
-        else ((ViewGroup) getChildAt(0)).addView(child);
+        Log.e("", add + " " + getChildCount());
+        if (add && getChildCount() > 0) super.addView(child, 0);
+        else super.addView(child);
     }
 
     @Override
     public void addView(View child, ViewGroup.LayoutParams params) {
-        if (parent) super.addView(child, params);
-        else ((ViewGroup) getChildAt(0)).addView(child, params);
+        if (add && getChildCount() > 0) super.addView(child, 0);
+        else super.addView(child, params);
     }
 
-    public void setSidePane(View child) {
-        ((ViewGroup) pane.getChildAt(0)).addView(child);
+    public GtkPaned(Context context) {
+        this(context, null);
     }
 
-    public void openDrawer(boolean open) {
+    public void openPane(boolean open) {
         ActionBar actionBar = ((Activity) getContext()).getActionBar();
-        changeVisibility(getChildAt(1), open);
+        tint.setClickable(open);
+        tint.setFocusable(open);
+        changeVisibility(tint, open);
         if (actionBar != null) {
             actionBar.setHomeAsUpIndicator(
                     getResources().getConfiguration().uiMode == Configuration.UI_MODE_NIGHT_YES && open ?
                             R.drawable.gtk_menu_close_dark :
                             getResources().getConfiguration().uiMode == Configuration.UI_MODE_NIGHT_YES ?
-                                    R.drawable.gtk_menu_dark :
-                                    open ? R.drawable.gtk_menu_close_light : R.drawable.gtk_menu_light);
+                                    R.drawable.gtk_menu_dark : open ?
+                                    R.drawable.gtk_menu_close_light : R.drawable.gtk_menu_light);
         }
-        ObjectAnimator.ofFloat(pane, "translationX", open ? 0f : 24 - pane.getWidth())
-                .setDuration(duration).start();
+        ObjectAnimator.ofFloat(pane, "translationX", open ?
+                0f : handle.getWidth() * 0.5f - pane.getWidth()).setDuration(duration).start();
     }
 
     public boolean isOpen() {
@@ -139,5 +108,76 @@ public class GtkPaned extends FrameLayout implements GtkWidget {
             );
         }
 
+    }
+
+    public void setPane(View view) {
+        child.removeAllViews();
+        child.addView(view);
+    }
+
+    public ViewGroup getPane() {
+        return child;
+    }
+
+    private class PaneCloser implements OnTouchListener {
+
+        private boolean close = false;
+
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            performClick();
+            if (view != null && motionEvent != null) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        close = motionEvent.getX() >= pane.getWidth();
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        if (close) openPane(false);
+                        break;
+                }
+            }
+            return true;
+        }
+    }
+
+    private class PaneMover implements OnTouchListener {
+        boolean move = false, leftSwipe = false, rightSwipe = false;
+        float startX = 0.0f;
+
+        @Override
+        public boolean onTouch(View view, MotionEvent motionEvent) {
+            performClick();
+            if (view != null && motionEvent != null) {
+                switch (motionEvent.getAction()) {
+                    case MotionEvent.ACTION_DOWN:
+                        startX = motionEvent.getX();
+                        break;
+                    case MotionEvent.ACTION_MOVE:
+                        float distance = motionEvent.getX() - startX;
+                        float position = pane.getTranslationX() + distance;
+                        leftSwipe = distance < -5;
+                        rightSwipe = distance > 5;
+                        boolean limit = position >= handle.getWidth() * 0.5 - pane.getWidth();
+                        if (startX != motionEvent.getX() && position <= 0 && limit) {
+                            move = true;
+                            tint.setVisibility(GONE);
+                            pane.setTranslationX(position);
+                        }
+                        break;
+                    case MotionEvent.ACTION_UP:
+                        if (move && pane.getTranslationX() != 0 || pane.getTranslationX() != -pane.getWidth()) {
+                            if (leftSwipe) openPane(false);
+                            else if (rightSwipe) openPane(true);
+                            else openPane(pane.getTranslationX() > -pane.getWidth() * 0.5);
+                        }
+                        move = false;
+                        break;
+                    default:
+                        break;
+                }
+                //view.onTouchEvent(motionEvent);
+            }
+            return true;
+        }
     }
 }
