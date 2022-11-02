@@ -3,6 +3,7 @@ package org.gtk;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
@@ -11,37 +12,40 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
-import android.widget.Space;
-import android.widget.TextView;
 
 public class GtkNotebook extends LinearLayout implements GtkWidget {
     private final LinearLayout pageTitles;
     private final FrameLayout pageFrame;
     private final LinearLayout tabBar;
-    private NotebookLabel firstPage = null;
-    private int currentPage = 0, previousPage = 0;
+    private final int colour = Color.parseColor("#bdb76b");
+    private View currentView;
+    private NotebookLabel firstLabel, currentLabel;
     private float startX = 0f;
 
     @SuppressLint("ClickableViewAccessibility")
     public GtkNotebook(Context context, AttributeSet attributes) {
         super(context, attributes);
         HorizontalScrollView scrollView = new HorizontalScrollView(context);
-        Button previousTab = new Button(context);
-        Button nextTab = new Button(context);
+        ImageButton previousTab = new ImageButton(context);
+        ImageButton nextTab = new ImageButton(context);
+        Drawable right = getResources().getDrawable(android.R.drawable.ic_media_next, null),
+                left = getResources().getDrawable(android.R.drawable.ic_media_previous, null);
         tabBar = new LinearLayout(context);
         pageTitles = new LinearLayout(context);
         pageFrame = new FrameLayout(context);
         setOrientation(VERTICAL);
+        previousTab.setImageDrawable(left);
+        nextTab.setImageDrawable(right);
         pageTitles.setGravity(Gravity.START);
-        addView(tabBar, new LayoutParams(-1, -2));
+        addView(tabBar, new LayoutParams(-1, 88));
         addView(pageFrame, new LayoutParams(-1, -1));
-        tabBar.addView(previousTab, new LayoutParams(48, 88));
-        //tabBar.addView(scrollView, new LayoutParams(-1, 88));
-        tabBar.addView(nextTab, new LayoutParams(48, 88));
+        tabBar.addView(previousTab, new LayoutParams(64, -1));
+        tabBar.addView(scrollView, new LayoutParams(-1, -1));
+        tabBar.addView(nextTab, new LayoutParams(64, -1));
         scrollView.addView(pageTitles, new LayoutParams(-1, -2));
         scrollView.setFillViewport(true);
-        //space.addView(barColour, new LayoutParams(-1, -1));
     }
 
     public GtkNotebook(Context context) {
@@ -69,10 +73,11 @@ public class GtkNotebook extends LinearLayout implements GtkWidget {
     }
 
     public void appendPage(CharSequence title, View view) {
-        Log.e("", String.valueOf(tabBar.getChildCount()));
         if (tabBar.getChildCount() == 3) {
-            firstPage = new NotebookLabel(getContext(), title);
-            tabBar.addView(firstPage, 0);
+            firstLabel = new NotebookLabel(getContext(), title);
+            currentLabel = firstLabel;
+            currentView = view;
+            tabBar.addView(firstLabel, 0);
         } else {
             NotebookLabel tabLabel = new NotebookLabel(getContext(), title);
             pageTitles.addView(tabLabel, new LayoutParams(304, 88));
@@ -90,21 +95,19 @@ public class GtkNotebook extends LinearLayout implements GtkWidget {
         view.setVisibility(INVISIBLE);
     }
 
-    public void setCurrentPage(int page) {
-        currentPage = page;
-        NotebookLabel current = currentPage == 0 ? (NotebookLabel) tabBar.getChildAt(0) :
-                (NotebookLabel) pageTitles.getChildAt(currentPage);
-        NotebookLabel previous = previousPage == 0 ? (NotebookLabel) tabBar.getChildAt(0) :
-                (NotebookLabel) pageTitles.getChildAt(previousPage);
-        pageFrame.getChildAt(previousPage).setVisibility(INVISIBLE);
-        if (previous != null) previous.selectTab(false);
-        if (current != null) current.selectTab(true);
-        pageFrame.getChildAt(currentPage).setVisibility(VISIBLE);
-        previousPage = page;
+    public void setCurrentPage(int i) {
+        NotebookLabel current = i == 0 ? (NotebookLabel) tabBar.getChildAt(0) :
+                (NotebookLabel) pageTitles.getChildAt(i - 1);
+        currentView.setVisibility(INVISIBLE);
+        currentLabel.selectTab(false);
+        current.selectTab(true);
+        currentLabel = current;
+        currentView = pageFrame.getChildAt(i);
+        currentView.setVisibility(VISIBLE);
     }
 
     public int getCurrentPage() {
-        return currentPage;
+        return pageFrame.indexOfChild(currentView);
     }
 
     public int getPageCount() {
@@ -114,25 +117,23 @@ public class GtkNotebook extends LinearLayout implements GtkWidget {
     private class NotebookLabel extends LinearLayout {
 
         private final LinearLayout shade;
-        private final int colour = Color.parseColor("#bdb76b");
 
         public NotebookLabel(Context context, CharSequence text) {
             super(context);
-            Button label = new Button(context);
+            Button title = new Button(context);
             shade = new LinearLayout(context);
             setOrientation(VERTICAL);
-            label.setBackground(null);
-            label.setText(text);
-            label.setGravity(Gravity.CENTER);
-            addView(label, new LayoutParams(304, 88));
+            title.setBackground(null);
+            title.setText(text);
+            title.setGravity(Gravity.CENTER);
+            shade.setBackgroundColor(Color.WHITE);
+            addView(title, new LayoutParams(304, 84));
             addView(shade, new LayoutParams(-1, 4));
-            label.setOnClickListener(new OnClickListener() {
+            title.setOnClickListener(new OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    int page = view.getId() == firstPage.getId()? 0 :
-                            pageTitles.indexOfChild((View) view.getParent()) + 1;
-                    setCurrentPage(page);
-                    selectTab(true);
+                    View label = (View) view.getParent();
+                    setCurrentPage(label == firstLabel ? 0 : pageTitles.indexOfChild(label) + 1);
                 }
             });
         }
