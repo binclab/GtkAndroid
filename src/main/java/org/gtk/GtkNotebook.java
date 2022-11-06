@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.RotateDrawable;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Gravity;
@@ -30,20 +31,14 @@ public class GtkNotebook extends LinearLayout implements GtkWidget {
         HorizontalScrollView scrollView = new HorizontalScrollView(context);
         ImageButton previousTab = new ImageButton(context);
         ImageButton nextTab = new ImageButton(context);
-        Drawable right = getResources().getDrawable(android.R.drawable.ic_media_next, null),
-                left = getResources().getDrawable(android.R.drawable.ic_media_previous, null);
         tabBar = new LinearLayout(context);
         pageTitles = new LinearLayout(context);
         pageFrame = new FrameLayout(context);
         setOrientation(VERTICAL);
-        previousTab.setImageDrawable(left);
-        nextTab.setImageDrawable(right);
         pageTitles.setGravity(Gravity.START);
         addView(tabBar, new LayoutParams(-1, 88));
         addView(pageFrame, new LayoutParams(-1, -1));
-        tabBar.addView(previousTab, new LayoutParams(64, -1));
         tabBar.addView(scrollView, new LayoutParams(-1, -1));
-        tabBar.addView(nextTab, new LayoutParams(64, -1));
         scrollView.addView(pageTitles, new LayoutParams(-1, -2));
         scrollView.setFillViewport(true);
     }
@@ -73,7 +68,7 @@ public class GtkNotebook extends LinearLayout implements GtkWidget {
     }
 
     public void appendPage(CharSequence title, View view) {
-        if (tabBar.getChildCount() == 3) {
+        if (tabBar.getChildCount() == 1) {
             firstLabel = new NotebookLabel(getContext(), title);
             currentLabel = firstLabel;
             currentView = view;
