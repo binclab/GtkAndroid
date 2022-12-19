@@ -2,6 +2,7 @@ package org.gtk;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.RotateDrawable;
@@ -87,13 +88,13 @@ public class GtkNotebook extends LinearLayout implements GtkWidget {
                 return true;
             }
         });
-        view.setVisibility(INVISIBLE);
+        view.setVisibility(GONE);
     }
 
     public void setCurrentPage(int i) {
         NotebookLabel current = i == 0 ? (NotebookLabel) tabBar.getChildAt(0) :
                 (NotebookLabel) pageTitles.getChildAt(i - 1);
-        currentView.setVisibility(INVISIBLE);
+        currentView.setVisibility(GONE);
         currentLabel.selectTab(false);
         current.selectTab(true);
         currentLabel = current;
